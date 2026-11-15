@@ -39,7 +39,7 @@ Google WeatherNext track works without installing anything.
 2. Paste, then press Enter (put your project ID in place of YOUR_PROJECT_ID):
    ```
    gcloud config set project YOUR_PROJECT_ID
-   git clone https://github.com/mv-srikanth/cyclone-watch-app.git
+   git clone -b claude/gallant-hawking-gk0lvh https://github.com/mv-srikanth/cyclone-watch-app.git
    cd cyclone-watch-app/local && python3 cyclone_watch.py --invest 92
    ```
    This prints Google's latest Invest 92 track.
