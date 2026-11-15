@@ -482,6 +482,11 @@ def main():
     ap.add_argument("--phone", action="store_true",
                     help="also serve phones and tablets on the same Wi-Fi (prints the address to open on the phone)")
     a = ap.parse_args()
+    cloud_shell = os.environ.get("CLOUD_SHELL") == "true"
+    if cloud_shell:  # Google Cloud Shell: open through Web preview (port 8080), no local browser
+        a.no_browser = True
+        if not CFG.get("port") and a.port == 8765:
+            a.port = 8080
     if a.invest:
         sys.exit(print_invest(a.invest))
     if not os.path.exists(os.path.join(ASSETS, "index.html")):
@@ -503,6 +508,11 @@ def main():
         print("  On your phone (same Wi-Fi), open:  http://%s:%d/" % (ip or "<this computer's IP>", srv.server_address[1]))
         print("  If it does not load, allow Python through this computer's firewall (Windows asks the first time).")
         print("  Anyone on this Wi-Fi can open it, and its Google WeatherNext queries are billed to your project.")
+        print()
+    if cloud_shell:
+        print()
+        print("  Google Cloud Shell: tap the Web preview button (eye/box icon at the top of the terminal)")
+        print("  then 'Preview on port %d'. The page opens in a new tab, only for your Google account." % srv.server_address[1])
         print()
     print("Keep this window open while you use it. Press Ctrl+C to stop.")
     if not a.no_browser:

@@ -30,6 +30,23 @@ The computer must stay on, with the window open.
 **Away from the computer:** install the Android app (APK, see the main README) or the iPhone app. They show the same dashboard and
 send background alerts, but not the Google WeatherNext track, because that needs your Google sign-in on the computer.
 
+## No computer? Use Google Cloud Shell from your phone
+
+Cloud Shell is a free terminal in the browser that is already signed in to your Google account, so the
+Google WeatherNext track works without installing anything.
+
+1. On the phone, open **https://shell.cloud.google.com** and sign in with the Google account that has WeatherNext access.
+2. Paste, then press Enter (put your project ID in place of YOUR_PROJECT_ID):
+   ```
+   gcloud config set project YOUR_PROJECT_ID
+   git clone https://github.com/mv-srikanth/cyclone-watch-app.git
+   cd cyclone-watch-app/local && python3 cyclone_watch.py --invest 92
+   ```
+   This prints Google's latest Invest 92 track.
+3. For the full dashboard: run `python3 cyclone_watch.py`, then tap **Web preview → Preview on port 8080**.
+   The page opens in a new tab and only your Google account can see it. Cloud Shell stops after about an hour of inactivity;
+   next time run just `cd cyclone-watch-app/local && git pull && python3 cyclone_watch.py`.
+
 ## Google WeatherNext
 
 The local server reads WeatherNext forecasts from BigQuery with your Google account, follows the
