@@ -14,6 +14,8 @@ Everything built for the web, in one Android app:
 - **Google Earth**: the globe button exports the current tracks and cone and opens them in Google Earth.
 - **Background alerts**: every 30 minutes when online, the app checks JTWC and the forecast for your saved location and notifies you when the storm is upgraded or named, or your alert level rises — even with the app closed.
 
+**On a computer**: the `local` folder opens the same dashboard in your browser, with a Google WeatherNext track — see [local/README.md](local/README.md).
+
 Not an official forecast. Follow IMD and your state disaster management authority.
 
 ## Build the APK

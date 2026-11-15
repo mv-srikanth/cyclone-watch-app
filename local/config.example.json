@@ -1,0 +1,5 @@
+{
+  "billing_project": "your-gcp-project-id",
+  "weathernext_table": "your-gcp-project-id.your_weathernext_dataset.weathernext_3_0_0_0p1deg",
+  "port": 8765
+}

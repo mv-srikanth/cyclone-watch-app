@@ -244,6 +244,7 @@ select.town option{background:#0F1D2C}
   <section class="card" id="cNow"><h2>Status right now <em id="nowAge"></em></h2><div id="nowBody" class="muted">Reading the latest advisory…</div></section>
   <section class="card" id="cLand"><h2>Landfall outlook <em id="landAge"></em></h2><div id="landBody" class="muted">Waiting for the ensemble forecasts…</div></section>
   <section class="card" id="cModels"><h2>Five models compared <em>best resolution first</em></h2><div id="modBody" class="muted">Loading model runs…</div></section>
+  <section class="card" id="cGoogle" hidden><h2>Google WeatherNext <em id="gAge"></em></h2><div id="gBody" class="muted">Asking Google for its latest run…</div></section>
   <section class="card" id="cInt"><h2>Centre pressure <em>lower = stronger</em></h2><div id="intBody" class="muted">Loading…</div></section>
   <section class="card" id="cTowns"><h2>Coastal towns <em>sorted by risk</em></h2><div id="townBody" class="muted">Loading…</div></section>
   <section class="card" id="cPoint" hidden><h2>Forecast at a point <em id="ptWhere"></em></h2><div id="ptBody"></div></section>
@@ -423,7 +424,7 @@ const LABELS=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/R
 const MSG=L.tileLayer.wms('https://view.eumetsat.int/geoserver/ows',{layers:'msg_iodc:ir108',format:'image/png',transparent:true,version:'1.3.0',opacity:.75,zIndex:5,attribution:'Meteosat-9 IODC © EUMETSAT'});
 const VIIRS=L.tileLayer(GIBS+'VIIRS_SNPP_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg',{maxNativeZoom:9,maxZoom:12,zIndex:4,attribution:'VIIRS · NASA GIBS'});
 const IMERG=L.tileLayer(GIBS+'IMERG_Precipitation_Rate_30min/default/default/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png',{maxNativeZoom:6,maxZoom:12,zIndex:6,opacity:.9,attribution:'IMERG · NASA GIBS'});
-const LG={};['past','tracks','ens','cone','coastp','jtwc','towns','storm','radars'].forEach(k=>LG[k]=L.layerGroup());
+const LG={};['past','tracks','ens','cone','coastp','jtwc','towns','storm','radars','google'].forEach(k=>LG[k]=L.layerGroup());
 
 // animated frame sets (satellite & radar)
 function FrameSet(mk,op){this.mk=mk;this.op=op;this.frames=[];this.layers={};this.i=-1;this.on=false}
@@ -521,7 +522,7 @@ function applyLayers(){
  $('#map').classList.toggle('dim',!!UI.dim);
  tog(LABELS,UI.on.labels);tog(MSG,UI.sat==='msg');tog(VIIRS,UI.sat==='viirs');tog(IMERG,UI.on.imerg);
  const him=!!SATP[UI.sat];if(him&&satProd!==UI.sat){HIMA.toggle(false);satProd=UI.sat;HIMA.frames=[];loadSat()}HIMA.toggle(him);RADAR.toggle(!!UI.on.radar);
- for(const k of['past','tracks','ens','cone','coastp','jtwc','towns','radars'])tog(LG[k],UI.on[k]);map.addLayer(LG.storm);
+ for(const k of['past','tracks','ens','cone','coastp','jtwc','towns','radars'])tog(LG[k],UI.on[k]);tog(LG.google,UI.on.tracks);map.addLayer(LG.storm);
  tog(STRIKE,UI.on.strike);tog(FIELD,UI.field!=='none');tog(FLOW,UI.on.particles);
  setLoop(!!UI.on.loop);updateFieldFns();if(map.hasLayer(FIELD))FIELD.draw();renderStorm();renderLegend();setTimeout(ensureFine,0);
  const ob=obsMode();$('#timebar').classList.toggle('obs',ob);if(ob){$('#play').textContent=UI.on.loop?'❚❚':'▶';$('#play').setAttribute('aria-label',UI.on.loop?'Stop the loop':'Play the last 2 hours')}else if(!playT){$('#play').textContent='▶';$('#play').setAttribute('aria-label','Play forecast')}timeLabel()}
@@ -720,7 +721,7 @@ function loadCache(){const c=store.get('data');if(!c||c.v!==4||Date.now()-c.at>1
  for(const k of['det1','det2','ensE','ensG','fine','towns'])if(S.runs[k])note(k,'saved copy · checking for newer','ok');return true}
 
 // ---------- JTWC ----------
-const JT='https://www.metoc.navy.mil/jtwc/';
+const JT=window.CW_LOCAL?'/jtwc/':'https://www.metoc.navy.mil/jtwc/';
 function parseABIO(txt){const t=txt.replace(/\s+/g,' '),out=[];const my=t.match(/\d{6}Z-\d{6}Z([A-Z]{3})(\d{4})/),hd=t.match(/ABIO\d+ PGTW (\d{2})(\d{2})(\d{2})/);
  const now=new Date(),yr=my?+my[2]:now.getUTCFullYear(),mo=my?MON.findIndex(m=>m.toUpperCase()===my[1]):now.getUTCMonth();const issued=hd?Date.UTC(yr,mo,+hd[1],+hd[2],+hd[3]):Date.now();
  const re=/\(INVEST (\d{2}[AB])\)(.*?)(?=\(\d\) | [A-C]\. (?:TROPICAL|SUBTROPICAL)| \d\. (?:NORTH|SOUTH|JUSTIFICATION)|$)/g;let m;
@@ -753,7 +754,7 @@ function renderJTWC(){LG.jtwc.clearLayers();const J=S.jtwc;if(!J)return;const tc
  const v=J.invest;if(v&&!tc){if(v.prev)L.polyline([[v.prev.lat,v.prev.lon],[v.lat,v.lon]],{pane:'jtwcP',color:C_JTWC,weight:2.4,dashArray:'3 5'}).addTo(LG.jtwc);
   L.circleMarker([v.lat,v.lon],{pane:'jtwcP',radius:10,color:'#020a12',weight:6,opacity:.5,fill:false,interactive:false}).addTo(LG.jtwc);
   L.circleMarker([v.lat,v.lon],{pane:'jtwcP',radius:10,color:C_JTWC,weight:3,fill:false}).bindTooltip(`<b>JTWC · Invest ${esc(v.id)}</b><br>Advisory ${ist(v.t)} IST<br>${ll(v.lat,v.lon)}${v.w0?`<br>Winds ${v.w0}${v.w1?'–'+v.w1:''} kt`:''}${v.mslp?` · ${v.mslp} hPa`:''}`,{className:'tt'}).addTo(LG.jtwc)}}
-function setTitle(){const st=S.stage;let t='Invest 98B';
+function setTitle(){const st=S.stage;let t='Bay of Bengal';
  if(st)t=st.name?st.label.replace(/^\w/,c=>c.toUpperCase())+' '+st.name:(st.id||'Disturbance')+' · '+st.label.toLowerCase()+(st.src.startsWith('JTWC')||st.src==='GDACS'?' (est.)':'');
  $('#title').innerHTML=esc(t)+' <span>· Bay of Bengal → Andhra &amp; Odisha coast</span>';if(!document.title.startsWith('●'))document.title=t+' · Cyclone Watch (live)'}
 
@@ -954,14 +955,41 @@ function exportKML(){const P=(la,lo)=>lo.toFixed(4)+','+la.toFixed(4)+',0',line=
  if(S.past.length)k+=`<Placemark><name>Analysed past track (ECMWF HRES)</name><styleUrl>#past</styleUrl><LineString><tessellate>1</tessellate><coordinates>${line(S.past)}</coordinates></LineString></Placemark>`;
  for(const m of MODELS){const d=S.det[m.id];if(!d||!d.tr.length)continue;k+=`<Folder><name>${m.name}</name><Placemark><name>${m.name} track</name><styleUrl>#${m.id}</styleUrl><LineString><tessellate>1</tessellate><coordinates>${line(d.tr)}</coordinates></LineString></Placemark>`;
   if(d.lf)k+=`<Placemark><name>${m.name} landfall ${esc(ist(d.lf.t))} IST</name><styleUrl>#${m.id}</styleUrl><description>${esc(near(d.lf.lat,d.lf.lon,COASTAL))}, about ${d.lf.p} hPa</description><Point><coordinates>${P(d.lf.lat,d.lf.lon)}</coordinates></Point></Placemark>`;k+='</Folder>'}
+ if(S.google&&S.google.track.length)k+=`<Style id="goog"><LineStyle><color>${kmlColor(C_GOOG)}</color><width>3</width></LineStyle></Style><Placemark><name>Google WeatherNext track</name><styleUrl>#goog</styleUrl><LineString><tessellate>1</tessellate><coordinates>${line(S.google.track)}</coordinates></LineString></Placemark>`;
  if(S.stats.length>1){const c=conePoly(S.stats);k+=`<Placemark><name>Ensemble cone (2/3 of runs)</name><styleUrl>#cone</styleUrl><Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${c.concat([c[0]]).map(p=>P(p[0],p[1])).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`}
  k+='</Document></kml>';if(window.Android&&Android.openKml){Android.openKml(k);return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([k],{type:'application/vnd.google-earth.kml+xml'}));a.download='cyclone-tracks-'+new Date().toISOString().slice(0,13).replace('T','-')+'UTC.kml';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 $('#btnKml').onclick=exportKML;
 if(window.Android&&Android.openFilm){const fb=document.createElement('button');fb.id='btnFilm';fb.title='Play the track animation';fb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-3px;margin-right:5px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg><span>Animation</span>';fb.onclick=()=>Android.openFilm();$('#btnRefresh').before(fb)}
 if(MY&&window.Android&&Android.setLocation)try{Android.setLocation(MY.lat,MY.lon,MY.name)}catch(e){}
 
+// ---------- Google WeatherNext track (local edition: the local server reads it from the user's BigQuery access) ----------
+const C_GOOG='#4C8DFF',GOOG=!!(window.CW_LOCAL&&CW_LOCAL.google);
+if(GOOG){SRC.google='Google WeatherNext track';$('#cGoogle').hidden=false}
+async function loadGoogle(){if(!GOOG)return;const J=S.jtwc,pos=J&&J.pos;
+ if(!pos){note('google','waiting for a JTWC position','wait');$('#gBody').textContent='Google’s track starts from the JTWC position of the system; none is listed right now.';return}
+ note('google','asking Google');try{const g=await(await fetch('/api/google/track?lat='+pos.lat+'&lon='+pos.lon,{cache:'no-store'})).json();
+  if(!g.ok)throw new Error(g.error||'no answer');S.google=g;renderGoogle();note('google',g.version+' run '+utc(g.init),'ok')}
+ catch(e){S.google=null;LG.google.clearLayers();note('google','failed: '+e.message,'err');$('#gBody').innerHTML=`<p class="lead">Could not read Google’s forecast.</p><p class="note">${esc(e.message)}</p><p class="note">On this computer run <b>gcloud auth application-default login</b>, then press Refresh. See local/README.md.</p>`}}
+function renderGoogle(){LG.google.clearLayers();const g=S.google;if(!g)return;const tr=g.track,J=S.jtwc,name=J&&J.main?J.main.id:J&&J.invest?'Invest '+J.invest.id:'the system';
+ $('#gAge').textContent='run '+utc(g.init);
+ if(!tr.length){$('#gBody').innerHTML=`<p class="lead">Google’s latest run shows no clear low-pressure centre near ${esc(name)}.</p>`;return}
+ const lls=tr.map(p=>[p.lat,p.lon]);halo(lls,{color:C_GOOG,weight:3,opacity:1,dashArray:'10 5'}).forEach(l=>l.addTo(LG.google));
+ tr.forEach(p=>{if(p.h%12)return;L.circleMarker([p.lat,p.lon],{radius:3.8,color:C_GOOG,weight:2,fillColor:'#07111B',fillOpacity:1}).bindTooltip(`<b style="color:${C_GOOG}">Google WeatherNext</b><br>${ist(p.t)} IST (+${p.h} h)<br>${ll(p.lat,p.lon)} · ${p.p} hPa${p.kt!=null?` · ${p.kt} kt`:''}`,{className:'tt'}).addTo(LG.google)});
+ let lf=null;for(let i=1;i<tr.length;i++)if(!isLand(tr[i-1].lat,tr[i-1].lon,true)&&isLand(tr[i].lat,tr[i].lon,true)){lf=tr[i];break}
+ if(lf)L.circleMarker([lf.lat,lf.lon],{radius:7,color:'#fff',weight:2.2,fillColor:C_GOOG,fillOpacity:1}).bindTooltip(`<b style="color:${C_GOOG}">Google WeatherNext landfall</b><br>${near(lf.lat,lf.lon,COASTAL)}<br>${ist(lf.t)} IST · ${lf.p} hPa`,{className:'tt'}).addTo(LG.google);
+ const lo=tr.reduce((a,b)=>b.p<a.p?b:a),last=tr[tr.length-1];
+ let h=`<p class="lead"><span class="sw" style="background:${C_GOOG}"></span>Google’s latest run follows ${esc(name)} for ${last.h} hours${lf?`, reaching the coast ${esc(near(lf.lat,lf.lon,COASTAL))} around <b>${ist(lf.t)} IST</b>`:', with no landfall in that time'}.</p>
+ <div class="grid2"><div class="stat"><b>${Math.round(lo.p)} hPa</b><span>lowest pressure · +${lo.h} h</span></div><div class="stat"><b>${lo.kt!=null?lo.kt+' kt':'—'}</b><span>strongest wind near centre</span></div></div>
+ <table style="margin-top:12px"><tr><th>When, IST</th><th>Position</th><th class="n">hPa</th><th class="n">kt</th></tr>`;
+ tr.filter(p=>!(p.h%24)||p===last).forEach(p=>{h+=`<tr class="click" data-ll="${p.lat},${p.lon}"><td>${ist(p.t)}</td><td>${esc(near(p.lat,p.lon))}</td><td class="n">${Math.round(p.p)}</td><td class="n">${p.kt??'—'}</td></tr>`});
+ h+=`</table><p class="note">${esc(g.table)} · centre found from the lowest sea-level pressure, starting at the JTWC position. Experimental; not an official forecast.</p>`;
+ $('#gBody').innerHTML=h}
+$('#gBody').addEventListener('click',e=>{const r=e.target.closest('[data-ll]');if(r){const[a,b]=r.dataset.ll.split(',').map(Number);map.setView([a,b],Math.max(map.getZoom(),7))}});
+if(GOOG){const _lj=loadJTWC;loadJTWC=async function(){await _lj();await loadGoogle()}}
+if(window.CW_LOCAL&&!(window.Android&&Android.openFilm)){const fb=document.createElement('button');fb.id='btnFilm';fb.title='Play the track animation';fb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-3px;margin-right:5px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg><span>Animation</span>';fb.onclick=()=>window.open('film.html','_blank');$('#btnRefresh').before(fb)}
+
 // ---------- scheduler ----------
-const JOBS={radar:{every:5*60e3,fn:loadRadar},sat:{every:10*60e3,fn:loadSat},jtwc:{every:10*60e3,fn:loadJTWC},gdacs:{every:30*60e3,fn:loadGDACS},models:{every:20*60e3,fn:()=>checkModels(false)}};
+const JOBS={radar:{every:5*60e3,fn:loadRadar},sat:{every:10*60e3,fn:loadSat},jtwc:{every:10*60e3,fn:()=>loadJTWC()},gdacs:{every:30*60e3,fn:loadGDACS},models:{every:20*60e3,fn:()=>checkModels(false)}};
 function runJob(k){const j=JOBS[k];j.next=Date.now()+j.every;return j.fn()}
 setInterval(()=>{const now=Date.now();for(const k in JOBS)if(JOBS[k].next&&now>=JOBS[k].next)runJob(k);if(JOBS.models.next)$('#nextChk').textContent='next model check in '+Math.max(0,Math.ceil((JOBS.models.next-now)/60e3))+' min';
  if(!S.userT&&Math.abs(Math.round(now/HOUR)*HOUR-S.T)>=HOUR){S.T=Math.round(now/HOUR)*HOUR;setupSlider();onTime()}},15e3);
