@@ -15,6 +15,21 @@ Your browser opens `http://127.0.0.1:8765/`. Keep the small window open while yo
 The page is served only to this computer. It reads JTWC through the local server, so the
 advisories that a browser alone would block now load as they do in the apps. The **Animation** button opens the track film.
 
+## Open it on your phone
+
+**Same Wi-Fi as the computer (includes the Google track):**
+1. On the computer, double-click `Start for Phone.bat` (Windows) or `start-for-phone.command` (Mac), or run `python3 cyclone_watch.py --phone`.
+2. The window prints an address such as `http://192.168.1.23:8765/`. Type it into the phone's browser (Chrome or Safari).
+3. Optional: browser menu → **Add to Home screen** so it opens like an app.
+
+Windows asks once whether Python may use the network: allow it on **private** networks. Anyone on the same Wi-Fi can open the page,
+and their visits run Google WeatherNext queries billed to your project, so use phone mode on your home Wi-Fi only.
+Phone browsers only share GPS with secure (https) pages, so **Use my location** will not work on this address. Pick a town or tap the map instead.
+The computer must stay on, with the window open.
+
+**Away from the computer:** install the Android app (APK, see the main README) or the iPhone app. They show the same dashboard and
+send background alerts, but not the Google WeatherNext track, because that needs your Google sign-in on the computer.
+
 ## Google WeatherNext
 
 The local server reads WeatherNext forecasts from BigQuery with your Google account, follows the

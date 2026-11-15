@@ -410,7 +410,11 @@ class Handler(BaseHTTPRequestHandler):
     def page(self, name):
         with open(os.path.join(ASSETS, name), encoding="utf-8") as f:
             html = f.read()
-        inject = "<script>window.CW_LOCAL={google:true};</script>"
+        inject = '<script>window.CW_LOCAL={google:true};</script>'
+        if name == "index.html":  # lets phones add it to the home screen as an app
+            inject += ('<meta name="apple-mobile-web-app-capable" content="yes">'
+                       '<meta name="mobile-web-app-capable" content="yes">'
+                       '<meta name="theme-color" content="#07111B">')
         html = html.replace("<head>", "<head>\n" + inject, 1)
         self.send(200, html, "text/html; charset=utf-8")
 
@@ -422,6 +426,19 @@ class Handler(BaseHTTPRequestHandler):
         except urllib.error.HTTPError as e:
             return self.send(e.code, e.read() or b"", "text/plain")
         self.send(code, raw, hdr.get("Content-Type", "text/plain"))
+
+
+def lan_ip():
+    """This computer's address on the local network (no traffic is sent)."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.0.2.1", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
 
 
 def print_invest(num):
@@ -462,6 +479,8 @@ def main():
     ap.add_argument("--invest", help="print Google WeatherNext's latest track for this invest number (e.g. 92) and exit")
     ap.add_argument("--port", type=int, default=int(CFG.get("port") or 8765))
     ap.add_argument("--no-browser", action="store_true", help="do not open the browser")
+    ap.add_argument("--phone", action="store_true",
+                    help="also serve phones and tablets on the same Wi-Fi (prints the address to open on the phone)")
     a = ap.parse_args()
     if a.invest:
         sys.exit(print_invest(a.invest))
@@ -470,7 +489,7 @@ def main():
     srv = None
     for port in range(a.port, a.port + 20):
         try:
-            srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+            srv = ThreadingHTTPServer(("0.0.0.0" if a.phone else "127.0.0.1", port), Handler)
             break
         except OSError:
             continue
@@ -478,6 +497,13 @@ def main():
         sys.exit("No free port near %d" % a.port)
     url = "http://127.0.0.1:%d/" % srv.server_address[1]
     print("Cyclone Watch is running at", url)
+    if a.phone:
+        ip = lan_ip()
+        print()
+        print("  On your phone (same Wi-Fi), open:  http://%s:%d/" % (ip or "<this computer's IP>", srv.server_address[1]))
+        print("  If it does not load, allow Python through this computer's firewall (Windows asks the first time).")
+        print("  Anyone on this Wi-Fi can open it, and its Google WeatherNext queries are billed to your project.")
+        print()
     print("Keep this window open while you use it. Press Ctrl+C to stop.")
     if not a.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
