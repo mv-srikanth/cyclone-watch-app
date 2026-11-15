@@ -14,6 +14,11 @@ Everything built for the web, in one Android app:
 - **Google Earth**: the globe button exports the current tracks and cone and opens them in Google Earth.
 - **Background alerts**: every 30 minutes when online, the app checks JTWC and the forecast for your saved location and notifies you when the storm is upgraded or named, or your alert level rises — even with the app closed.
 
+**On an iPhone or any phone, no computer needed**: the `docs` folder is the same dashboard as a website (GitHub Pages).
+Turn it on once in the repository: **Settings → Pages → Build and deployment → Source: Deploy from a branch →** pick the branch and the **/docs** folder → **Save**.
+After a minute it is at `https://mv-srikanth.github.io/cyclone-watch-app/`. Open it in Safari, then **Share → Add to Home Screen**.
+(`docs/index.html` and `docs/film.html` are copies of `app/src/main/assets/`; copy them again after changing the dashboard.)
+
 **On a computer**: the `local` folder opens the same dashboard in your browser, with a Google WeatherNext track — see [local/README.md](local/README.md).
 
 Not an official forecast. Follow IMD and your state disaster management authority.
